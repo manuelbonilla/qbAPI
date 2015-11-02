@@ -97,6 +97,7 @@ enum qbmove_command
 
     CMD_GET_VELOCITIES      = 137   ///< Command for asking device's
                                     ///  current velocity of motors and pulley
+    CMD_EXT_DRIVE           = 138
 };
 
 /** \} */

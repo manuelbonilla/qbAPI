@@ -995,6 +995,7 @@ char checksum ( char * data_buffer, int data_length );
 /** \} */
 
 
+int commExtDrive(comm_settings *comm_settings_t, int id, char ext_input);
 // ----------------------------------------------------------------------------
 #endif
 

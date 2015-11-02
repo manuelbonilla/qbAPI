@@ -600,8 +600,7 @@ void RS485GetInfo(comm_settings *comm_settings_t, char *buffer){
     WriteFile(comm_settings_t->file_handle, auxstring, 3, &n_bytes_out, NULL);
     n_bytes_in = 1;
 
-    Sleep(200);
-
+    Sleep(200);         //milliseconds
 
     while(n_bytes_in) {
         ReadFile(comm_settings_t->file_handle, &aux, 1, &n_bytes_in, NULL);
@@ -658,8 +657,8 @@ int commPing(comm_settings *comm_settings_t, int id)
     package_out[2] = (unsigned char) id;
     package_out[3] = 2;
     package_out[4] = CMD_PING;
-    package_out[5] = CMD_PING;
-
+    package_out[5] = CMD_PING;                      //If command sent is one byte only
+                                                    //checksum is equal to data sent
 
 #if (defined(_WIN32) || defined(_WIN64))
     WriteFile(comm_settings_t->file_handle, package_out, 6, &package_size_out, NULL);
@@ -791,12 +790,12 @@ void commSetInputs(comm_settings *comm_settings_t, int id, short int inputs[]) {
     data_out[2] = (unsigned char) id;
     data_out[3] = 6;
 
-    data_out[4] = CMD_SET_INPUTS;                // command
-    data_out[5] = ((char *) &inputs[0])[1];
+    data_out[4] = CMD_SET_INPUTS;                   // command
+    data_out[5] = ((char *) &inputs[0])[1];         // MSB sent first
     data_out[6] = ((char *) &inputs[0])[0];
     data_out[7] = ((char *) &inputs[1])[1];
     data_out[8] = ((char *) &inputs[1])[0];
-    data_out[9] = checksum(data_out + 4, 5);   // checksum
+    data_out[9] = checksum(data_out + 4, 5);        // checksum
 
 #if (defined(_WIN32) || defined(_WIN64))
     WriteFile(comm_settings_t->file_handle, data_out, 10, &package_size_out, NULL);
@@ -835,7 +834,7 @@ void commSetPosStiff(comm_settings *comm_settings_t, int id, short int inputs[])
     data_out[3] = 6;
 
     data_out[4]  = CMD_SET_POS_STIFF;               // command
-    data_out[5] = ((char *) &inputs[0])[1];
+    data_out[5] = ((char *) &inputs[0])[1];         // MSB sent first
     data_out[6] = ((char *) &inputs[0])[0];
     data_out[7] = ((char *) &inputs[1])[1];
     data_out[8] = ((char *) &inputs[1])[0];
@@ -1241,7 +1240,7 @@ int commGetInfo(comm_settings *comm_settings_t, int id, short int info_type, cha
 
     n_bytes_in = 1;
 
-    Sleep(200);
+    Sleep(200);             //milliseconds
 
     while(n_bytes_in) {
         ReadFile(comm_settings_t->file_handle, &aux, 1, &n_bytes_in, NULL);
@@ -1414,6 +1413,53 @@ int commHandCalibrate(comm_settings *comm_settings_t, int id, short int speed, s
         return -1;
 
     return 0;
+}
+
+//==============================================================================
+//                                                               commExtDrive
+//==============================================================================
+// This function sends external reference inputs to a second board
+//==============================================================================
+
+int commExtDrive(comm_settings *comm_settings_t, int id, char ext_input) {
+
+    char data_out[BUFFER_SIZE];         // output data buffer
+    char package_in[BUFFER_SIZE];
+    int package_in_size;
+
+#if (defined(_WIN32) || defined(_WIN64))
+    DWORD package_size_out;             // for serial port access
+#else
+    int n_bytes;
+#endif
+
+
+    data_out[0] = ':';
+    data_out[1] = ':';
+    data_out[2] = (unsigned char) id;
+    data_out[3] = 3;
+    data_out[4] = CMD_EXT_DRIVE;                            // command
+    data_out[5] = ext_input ? 3 : 0;
+    data_out[6] = checksum(data_out + 4, 2);                // checksum
+
+#if (defined(_WIN32) || defined(_WIN64))
+    WriteFile(comm_settings_t->file_handle, data_out, 7, &package_size_out, NULL);
+#else
+    ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
+
+    if(n_bytes){
+        read(comm_settings_t->file_handle, package_in, n_bytes);
+    }
+    
+    write(comm_settings_t->file_handle, data_out, 7);
+#endif
+
+    package_in_size = RS485read(comm_settings_t, id, package_in);
+    if (package_in_size == -1)
+        return -1;
+
+    return 0;
+
 }
 
 //==============================================================================
