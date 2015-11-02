@@ -834,7 +834,7 @@ void commSetPosStiff(comm_settings *comm_settings_t, int id, short int inputs[])
     data_out[2] = (unsigned char) id;
     data_out[3] = 6;
 
-    data_out[4]  = CMD_SET_POS_STIFF;               // command
+    data_out[4] = CMD_SET_POS_STIFF;               // command
     data_out[5] = ((char *) &inputs[0])[1];
     data_out[6] = ((char *) &inputs[0])[0];
     data_out[7] = ((char *) &inputs[1])[1];
@@ -849,6 +849,45 @@ void commSetPosStiff(comm_settings *comm_settings_t, int id, short int inputs[])
         read(comm_settings_t->file_handle, package_in, n_bytes);
 
     write(comm_settings_t->file_handle, data_out, 10);
+#endif
+
+}
+
+//==============================================================================
+//                                                            commSetCuffInputs
+//==============================================================================
+// This function send reference inputs to a qbMove board connected to a Cuff
+//==============================================================================
+
+void commSetCuffInputs(comm_settings *comm_settings_t, int id, int flag) {
+
+    char data_out[BUFFER_SIZE];         // output data buffer
+
+#if (defined(_WIN32) || defined(_WIN64))
+    DWORD package_size_out;             // for serial port access
+#else
+    char package_in[BUFFER_SIZE];
+    int n_bytes;
+#endif
+
+
+    data_out[0] = ':';
+    data_out[1] = ':';
+    data_out[2] = (unsigned char) id;
+    data_out[3] = 3;
+
+    data_out[4] = CMD_SET_CUFF_INPUTS;      // command
+    data_out[5] = flag ? 1 : 0;
+    data_out[6] = checksum(data_out + 4, 2);      // checksum
+
+#if (defined(_WIN32) || defined(_WIN64))
+    WriteFile(comm_settings_t->file_handle, data_out, 7, &package_size_out, NULL);
+#else
+    ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
+    if(n_bytes)
+        read(comm_settings_t->file_handle, package_in, n_bytes);
+
+    write(comm_settings_t->file_handle, data_out, 7);
 #endif
 
 }
@@ -1201,6 +1240,67 @@ int commGetVelocities(comm_settings *comm_settings_t, int id, short int measurem
 }
 
 //==============================================================================
+//                                                          commGetAccelerations
+//==============================================================================
+// This function gets measurements from the QB Move.
+//==============================================================================
+
+int commGetAccelerations(comm_settings *comm_settings_t, int id, short int measurements[]) {
+
+    char data_out[BUFFER_SIZE];         // output data buffer
+    char package_in[BUFFER_SIZE];       // output data buffer
+    int package_in_size;
+
+#if (defined(_WIN32) || defined(_WIN64))
+    DWORD package_size_out;             // for serial port access
+#else
+    int n_bytes;
+#endif
+
+//=================================================     preparing packet to send
+
+    data_out[0] = ':';
+    data_out[1] = ':';
+    data_out[2] = (unsigned char) id;
+    data_out[3] = 2;
+    data_out[4] = CMD_GET_ACCEL;             // command
+    data_out[5] = CMD_GET_ACCEL;             // checksum
+
+#if (defined(_WIN32) || defined(_WIN64))
+    WriteFile(comm_settings_t->file_handle, data_out, 6, &package_size_out, NULL);
+#else
+    ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
+    if(n_bytes)
+        read(comm_settings_t->file_handle, package_in, n_bytes);
+
+    write(comm_settings_t->file_handle, data_out, 6);
+#endif
+
+    package_in_size = RS485read(comm_settings_t, id, package_in);
+    if (package_in_size == -1)
+        return -1;
+
+//==============================================================     get packet
+
+    ((char *) &measurements[0])[0] = package_in[2];
+    ((char *) &measurements[0])[1] = package_in[1];
+
+    ((char *) &measurements[1])[0] = package_in[4];
+    ((char *) &measurements[1])[1] = package_in[3];
+
+    ((char *) &measurements[2])[0] = package_in[6];
+    ((char *) &measurements[2])[1] = package_in[5];
+
+#if NUM_OF_SENSORS == 4
+    ((char *) &measurements[3])[0] = package_in[8];
+    ((char *) &measurements[3])[1] = package_in[7];
+
+#endif
+
+    return 0;
+}
+
+//==============================================================================
 //                                                                   commGetInfo
 //==============================================================================
 // This function gets a string of information from the QB Move.
@@ -1546,6 +1646,26 @@ int commSetParam(  comm_settings *comm_settings_t,
             value_size  = 1;
             break;
 
+        case PARAM_CURRENT_LOOKUP:
+            value       = (float *) values;
+            value_size  = 4;
+            break;
+
+        case PARAM_CURR_PROP_GAIN:
+            value       = (float *) values;
+            value_size  = 4;
+            break;
+
+        case PARAM_CURR_SAT:
+            value       = (int16_t *) values;
+            value_size  = 2;
+            break;
+
+        case PARAM_CURR_DEAD_ZONE:
+            value       = (int16_t *) values;
+            value_size  = 2;
+            break;
+
         default:
             return -1;
     }
@@ -1698,7 +1818,23 @@ int commGetParam(comm_settings *comm_settings_t,
 
         case PARAM_MOTOR_SUPPLY:
             value_size = 1;
-            break; 
+            break;
+
+        case PARAM_CURRENT_LOOKUP:
+            value_size = 4; 
+            break;
+
+        case PARAM_CURR_PROP_GAIN:
+            value_size = 4;
+            break;
+
+        case PARAM_CURR_SAT:
+            value_size = 2;
+            break;
+
+        case PARAM_CURR_DEAD_ZONE:
+            value_size = 2;
+            break;
 
         default:
             break;

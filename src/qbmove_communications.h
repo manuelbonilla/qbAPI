@@ -390,6 +390,36 @@ void commSetInputs( comm_settings *comm_settings_t, int id, short int inputs[] )
 
 void commSetPosStiff( comm_settings *comm_settings_t, int id, short int inputs[] );
 
+//============================================================     commSetInputs
+
+/** This function send reference inputs to a qbMove board connected to the serial
+ *  port. Is used only when the device is a Cuff.
+ *
+ *  \param  comm_settings_t     A _comm_settings_ structure containing info about the
+ *                              communication settings.
+ *
+ *  \param  id                  The device's id number.
+ *  \param  cufF_inputs         Input references.
+ *
+ *  \par Example
+ *  \code
+
+    comm_settings   comm_settings_t;
+    int             device_id = 65;
+    short int       cuff_inputs[2];
+
+    openRS485(&comm_settings_t,"/dev/tty.usbserial-128");
+
+    cuff_inputs[0]   = 1000;
+    cuff_inputs[1]   = -1000;
+    commSetCuffInputs(&comm_settings_t, device_id, cuff_inputs);
+    closeRS485(&comm_settings_t);
+
+ *  \endcode
+**/
+
+void commSetCuffInputs(comm_settings *comm_settings_t, int id, int flag);
+
 //============================================================     commGetInputs
 
 /** This function gets input references from a qbMove connected to the serial
@@ -603,7 +633,43 @@ int commGetEmg(comm_settings *comm_settings_t, int id, short int emg[2]);
 **/
 
 int commGetVelocities(comm_settings *comm_settings_t, int id, short int measurements[] );
+//int commGetVelocities(comm_settings *comm_settings_t, int id, float measurements[] );
 
+//========================================================     commGetAccelerations
+
+/** This function gets acceleration of the SoftHand motor
+*   connected to a serial port
+*
+*  \param  comm_settings_t     A _comm_settings_ structure containing info about the
+*                              communication settings.
+*
+*  \param  id                  The device's id number.
+*  \param  measurements        Velocity measurements.
+*
+*  \return Returns 0 if communication was ok, -1 otherwise.
+*
+*  \par Example
+*  \code
+
+   comm_settings    comm_settings_t;
+   int              device_id = 65;
+   short int        acc_measurements[3];
+
+   openRS485(&comm_settings_t,"/dev/tty.usbserial-128");
+
+   if(!commGetAccelerations(&comm_settings_t, device_id, acc_measurements))
+       printf("Measurements: %d\t%d\t%d\n", acc_measurements[0], acc_measurements[1], acc_measurements[2]);
+   else
+       puts("Couldn't retrieve accelerations.");
+
+   closeRS485(&comm_settings_t);
+
+*  \endcode
+
+**/
+
+int commGetAccelerations(comm_settings *comm_settings_t, int id, short int measurements[] );
+//int commGetAccelerations(comm_settings *comm_settings_t, int id, float measurements[] );
 
 //==========================================================     commGetActivate
 

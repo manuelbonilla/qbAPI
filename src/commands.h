@@ -95,8 +95,12 @@ enum qbmove_command
                                     ///  of the qbMove's shaft
     CMD_GET_EMG             = 136,  ///< Command for getting the emg sensors measurements
 
-    CMD_GET_VELOCITIES      = 137   ///< Command for asking device's
+    CMD_GET_VELOCITIES      = 137,  ///< Command for asking device's
                                     ///  current velocity of motors and pulley
+    CMD_GET_ACCEL           = 138,  ///<
+    CMD_GET_CURR_DIFF       = 139,  ///<
+    CMD_SET_CURR_DIFF       = 140,  ///<
+    CMD_SET_CUFF_INPUTS     = 141   ///< 
 };
 
 /** \} */
@@ -146,9 +150,11 @@ enum qbmove_parameter
     PARAM_DOUBLE_ENC_ON_OFF      = 19,  ///< Double Encoder Y/N
 
     PARAM_MOT_HANDLE_RATIO       = 20,  ///< Multiplier between handle and motor
-
-    PARAM_MOTOR_SUPPLY           = 21   ///< Motor supply voltage of the hand
-
+    PARAM_MOTOR_SUPPLY           = 21,   ///< Motor supply voltage of the hand
+    PARAM_CURRENT_LOOKUP         = 22,
+    PARAM_CURR_PROP_GAIN         = 23,
+    PARAM_CURR_SAT               = 24,
+    PARAM_CURR_DEAD_ZONE         = 25
 };
 
 
