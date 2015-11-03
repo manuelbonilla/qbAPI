@@ -1666,6 +1666,11 @@ int commSetParam(  comm_settings *comm_settings_t,
             value_size  = 2;
             break;
 
+        case PARAM_CUFF_ACTIVATION_FLAG:
+            value       = (uint8_t *) values;
+            value_size  = 1;
+            break;
+
         default:
             return -1;
     }
@@ -1834,6 +1839,10 @@ int commGetParam(comm_settings *comm_settings_t,
 
         case PARAM_CURR_DEAD_ZONE:
             value_size = 2;
+            break;
+
+        case PARAM_CUFF_ACTIVATION_FLAG:
+            value_size = 1;
             break;
 
         default:
