@@ -139,8 +139,7 @@ enum qbmove_parameter
     PARAM_EMG_MAX_VALUE          = 15,  ///< Maximum value of EMG
     PARAM_EMG_SPEED              = 16,  ///< Closure speed when using EMG
 
-    PARAM_SC_BAND                = 17,  ///< Short-Circuit band
-
+    PARAM_CLOSURE_SPEED          = 17,  ///< Hand closure speed
     PARAM_PID_CURR_CONTROL       = 18,  ///< PID current control
 
     PARAM_DOUBLE_ENC_ON_OFF      = 19,  ///< Double Encoder Y/N
@@ -181,9 +180,10 @@ enum qbmove_input_mode
                                         ///  position
     INPUT_MODE_EMG_FCFS         = 4,    ///< Use 2 EMG. First reaching threshold
                                         ///  wins and its value defines hand closure
-    INPUT_MODE_EMG_FCFS_ADV     = 5     ///< Use 2 EMG. First reaching threshold
+    INPUT_MODE_EMG_FCFS_ADV     = 5,    ///< Use 2 EMG. First reaching threshold
                                         ///  wins and its value defines hand closure
                                         ///  Wait for both EMG to lower under threshold
+    INPUT_MODE_JOYSTICK         = 6     ///< Joystick input mode
 };
 
 //============================================================     control modes

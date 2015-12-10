@@ -1546,6 +1546,11 @@ int commSetParam(  comm_settings *comm_settings_t,
             value_size  = 1;
             break;
 
+        case PARAM_CLOSURE_SPEED:
+            value       = (uint16_t *) values;
+            value_size  = 2;
+            break;
+
         default:
             return -1;
     }
@@ -1699,6 +1704,10 @@ int commGetParam(comm_settings *comm_settings_t,
         case PARAM_MOTOR_SUPPLY:
             value_size = 1;
             break; 
+
+        case PARAM_CLOSURE_SPEED:
+            value_size = 2;
+            break;
 
         default:
             break;
