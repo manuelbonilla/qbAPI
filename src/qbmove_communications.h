@@ -496,6 +496,40 @@ int commGetMeasurements( comm_settings *comm_settings_t, int id, short int measu
 
 int commGetCurrents( comm_settings *comm_settings_t, int id, short int currents[2] );
 
+//======================================================     commGetJoystick
+
+/** This function gets joystick measurementes from a softhand connected to the serial
+*  port.
+*
+*  \param  comm_settings_t     A _comm_settings_ structure containing info about the
+*                              communication settings.
+*
+*  \param  id                  The device's id number.
+*  \param  joystick            Joystick analog measurements.
+*
+*  \return Returns 0 if communication was ok, -1 otherwise.
+*
+*  \par Example
+*  \code
+
+   comm_settings    comm_settings_t;
+   int              device_id = 65;
+   short int        joystick[2];
+
+   openRS485(&comm_settings_t,"/dev/tty.usbserial-128");
+
+   if(!commGetJoystick(&comm_settings_t, device_id, joystick))
+       printf("Measurements: %d\t%d\t%d\n",joystick[0], joystick[1]);
+   else
+       puts("Couldn't retrieve joystick measurements.");
+
+   closeRS485(&comm_settings_t);
+
+*  \endcode
+
+**/
+
+int commGetJoystick( comm_settings *comm_settings_t, int id, short int joystick[2]);
 //=======================================================     commGetCurrAndMeas
 
 /** This function gets currents and positipon measurements from a qbMove

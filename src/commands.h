@@ -95,8 +95,9 @@ enum qbmove_command
                                     ///  of the qbMove's shaft
     CMD_GET_EMG             = 136,  ///< Command for getting the emg sensors measurements
 
-    CMD_GET_VELOCITIES      = 137   ///< Command for asking device's
+    CMD_GET_VELOCITIES      = 137,  ///< Command for asking device's
                                     ///  current velocity of motors and pulley
+    CMD_GET_JOYSTICK        = 138   ///< Command for getting joystick measurements
 };
 
 /** \} */
@@ -146,8 +147,9 @@ enum qbmove_parameter
 
     PARAM_MOT_HANDLE_RATIO       = 20,  ///< Multiplier between handle and motor
 
-    PARAM_MOTOR_SUPPLY           = 21   ///< Motor supply voltage of the hand
+    PARAM_MOTOR_SUPPLY           = 21,  ///< Motor supply voltage of the hand
 
+    PARAM_JOYSTICK_THRESHOLD     = 22   ///< Joystick threshold value for joystick control
 };
 
 

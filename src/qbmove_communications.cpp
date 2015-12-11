@@ -969,6 +969,58 @@ int commGetMeasurements(comm_settings *comm_settings_t, int id, short int measur
 }
 
 //==============================================================================
+//                                                               commGetJoystick
+//==============================================================================
+// This function gets measurements from the QB Move.
+//==============================================================================
+
+int commGetJoystick(comm_settings *comm_settings_t, int id, short int joystick[]) {
+    
+    char data_out[BUFFER_SIZE];         // output data buffer
+    char package_in[BUFFER_SIZE];       // output data buffer
+    int package_in_size;
+    
+#if (defined(_WIN32) || defined(_WIN64))
+    DWORD package_size_out;             // for serial port access
+#else
+    int n_bytes;
+#endif
+    
+    //=================================================		preparing packet to send
+    
+    data_out[0] = ':';
+    data_out[1] = ':';
+    data_out[2] = (unsigned char) id;
+    data_out[3] = 2;
+    data_out[4] = CMD_GET_JOYSTICK;             // command
+    data_out[5] = CMD_GET_JOYSTICK;             // checksum
+    
+#if (defined(_WIN32) || defined(_WIN64))
+    WriteFile(comm_settings_t->file_handle, data_out, 6, &package_size_out, NULL);
+#else
+    ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
+    if(n_bytes)
+        read(comm_settings_t->file_handle, package_in, n_bytes);
+    
+    write(comm_settings_t->file_handle, data_out, 6);
+#endif
+    
+    package_in_size = RS485read(comm_settings_t, id, package_in);
+    if (package_in_size == -1)
+        return -1;
+    
+    //==============================================================	 get packet
+    
+    ((char *) &joystick[0])[0] = package_in[2];
+    ((char *) &joystick[0])[1] = package_in[1];
+    
+    ((char *) &joystick[1])[0] = package_in[4];
+    ((char *) &joystick[1])[1] = package_in[3];
+    
+    return 0;
+}
+
+//==============================================================================
 //                                                          commGetCurrents
 //==============================================================================
 // This function gets currents from the QB Move.
@@ -1551,6 +1603,11 @@ int commSetParam(  comm_settings *comm_settings_t,
             value_size  = 2;
             break;
 
+        case PARAM_JOYSTICK_THRESHOLD:
+            value       = (int16_t *) values;
+            value_size  = 2;
+            break;
+
         default:
             return -1;
     }
@@ -1706,6 +1763,10 @@ int commGetParam(comm_settings *comm_settings_t,
             break; 
 
         case PARAM_CLOSURE_SPEED:
+            value_size = 2;
+            break;
+
+        case PARAM_JOYSTICK_THRESHOLD:
             value_size = 2;
             break;
 
