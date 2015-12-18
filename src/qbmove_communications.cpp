@@ -1608,6 +1608,11 @@ int commSetParam(  comm_settings *comm_settings_t,
             value_size  = 2;
             break;
 
+        case PARAM_JOYSTICK_GAINS:
+            value       = (uint16_t *) values;
+            value_size  = 2;
+            break;
+
         default:
             return -1;
     }
@@ -1767,6 +1772,10 @@ int commGetParam(comm_settings *comm_settings_t,
             break;
 
         case PARAM_JOYSTICK_THRESHOLD:
+            value_size = 2;
+            break;
+
+        case PARAM_JOYSTICK_GAINS:
             value_size = 2;
             break;
 

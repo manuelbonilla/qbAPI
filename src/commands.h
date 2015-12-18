@@ -149,7 +149,8 @@ enum qbmove_parameter
 
     PARAM_MOTOR_SUPPLY           = 21,  ///< Motor supply voltage of the hand
 
-    PARAM_JOYSTICK_THRESHOLD     = 22   ///< Joystick threshold value for joystick control
+    PARAM_JOYSTICK_THRESHOLD     = 22,  ///< Joystick threshold value for joystick control
+    PARAM_JOYSTICK_GAINS         = 23
 };
 
 
