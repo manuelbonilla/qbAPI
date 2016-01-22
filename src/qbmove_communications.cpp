@@ -1671,6 +1671,11 @@ int commSetParam(  comm_settings *comm_settings_t,
             value_size  = 1;
             break;
 
+        case PARAM_POWER_TENSION:
+            value       = (uint16_t *) values;
+            value_size  = 2;
+            break;
+
         default:
             return -1;
     }

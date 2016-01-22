@@ -155,7 +155,8 @@ enum qbmove_parameter
     PARAM_CURR_PROP_GAIN         = 23,
     PARAM_CURR_SAT               = 24,
     PARAM_CURR_DEAD_ZONE         = 25,
-    PARAM_CUFF_ACTIVATION_FLAG   = 26
+    PARAM_CUFF_ACTIVATION_FLAG   = 26, 
+    PARAM_POWER_TENSION          = 27
 };
 
 
