@@ -1,3 +1,4 @@
+
 // Copyright (c) 2012, qbrobotics.
 // All rights reserved.
 //
@@ -23,10 +24,10 @@
 // POSSIBILITY OF SUCH DAMAGE.
 
 /**
- *  \file       qbmove_communications.cpp
+ *  \file       qbmove_communications.c
  *
  *  \brief      Library of functions for SERIAL PORT communication with a
- *              qbMove.
+ *              QB Move.
  *
  *              Implementation.
  *
@@ -64,6 +65,13 @@
     #include <linux/serial.h>
 #endif
 
+#if (defined(__APPLE__))
+    #include <IOKit/IOKitLib.h>
+    #include <IOKit/serial/IOSerialKeys.h>
+    #include <IOKit/serial/ioss.h>
+    #include <IOKit/IOBSD.h>
+#endif
+
 #include "qbmove_communications.h"
 #include "commands.h"
 
@@ -84,7 +92,6 @@
 
 
 #define BUFFER_SIZE 500    ///< Size of buffers that store communication packets
-
 
 //#define VERBOSE                 ///< Used for debugging
 
@@ -183,7 +190,7 @@ int RS485listPorts( char list_of_ports[10][255] )
         }
     }
 
-    (void)closedir(directory);
+    (void) closedir(directory);
 
     return i;
 
@@ -271,6 +278,10 @@ error:
 
     struct termios options;
 
+    #if (defined __APPLE__)
+    speed_t custom_baudrate = BAUD_RATE;
+    #endif
+
     comm_settings_t->file_handle =
         open(port_s, O_RDWR | O_NOCTTY | O_NONBLOCK);
 
@@ -293,31 +304,70 @@ error:
         goto error;
     }
 
+#if (defined __APPLE__)
+
+    // set baud rate
+    if (BAUD_RATE > 460800){
+
+      // cfmakeraw(&options);
+
+      cfsetispeed(&options, 300);
+      cfsetospeed(&options, 300);
+
+      // enable the receiver and set local mode
+      options.c_cflag |= (CLOCAL | CREAD);
+
+      // enable flags
+      options.c_cflag &= ~PARENB;
+      //options.c_cflag &= ~CSTOPB;
+      options.c_cflag &= ~CSIZE;
+      options.c_cflag |= CS8;
+
+      //disable flags
+      options.c_cflag &= ~CRTSCTS;
+      options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+      options.c_oflag &= ~OPOST;
+      options.c_iflag &= ~(IXON | IXOFF | IXANY | INLCR);
+
+      options.c_cc[VMIN] = 0;
+      options.c_cc[VTIME] = 0;
+      // Set not-standard BAUDRATE bypassing termios.h
+
+      if (ioctl(comm_settings_t->file_handle, IOSSIOSPEED, &custom_baudrate))
+          goto error;
+
+    }
+    else{
+
+      cfsetispeed(&options, BAUD_RATE);
+      cfsetospeed(&options, BAUD_RATE);
+
+      // enable the receiver and set local mode
+      options.c_cflag |= (CLOCAL | CREAD);
+
+      // enable flags
+      options.c_cflag &= ~PARENB;
+      //options.c_cflag &= ~CSTOPB;
+      options.c_cflag &= ~CSIZE;
+      options.c_cflag |= CS8;
+
+      //disable flags
+      options.c_cflag &= ~CRTSCTS;
+      options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+      options.c_oflag &= ~OPOST;
+      options.c_iflag &= ~(IXON | IXOFF | IXANY | INLCR);
+
+      options.c_cc[VMIN] = 0;
+      options.c_cc[VTIME] = 0;
+
+    }
+
+#else
+
     // set baud rate
     cfsetispeed(&options, BAUD_RATE);
     cfsetospeed(&options, BAUD_RATE);
 
-#if (defined __APPLE__)
-
-    // enable the receiver and set local mode
-    options.c_cflag |= (CLOCAL | CREAD);
-
-    // enable flags
-    options.c_cflag &= ~PARENB;
-    //options.c_cflag &= ~CSTOPB;
-    options.c_cflag &= ~CSIZE;
-    options.c_cflag |= CS8;
-
-    //disable flags
-    options.c_cflag &= ~CRTSCTS;
-    options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
-    options.c_oflag &= ~OPOST;
-    options.c_iflag &= ~(IXON | IXOFF | IXANY | INLCR);
-
-    options.c_cc[VMIN] = 0;
-    options.c_cc[VTIME] = 0;
-
-#else
     cfmakeraw(&options);
 
     options.c_cc[VMIN] = 0;
@@ -372,8 +422,8 @@ void closeRS485(comm_settings *comm_settings_t)
 long timevaldiff(struct timeval *starttime, struct timeval *finishtime)
 {
     long usec;
-    usec=(finishtime->tv_sec-starttime->tv_sec)*1000000;
-    usec+=(finishtime->tv_usec-starttime->tv_usec);
+    usec = (finishtime->tv_sec - starttime->tv_sec) * 1000000;
+    usec += (finishtime->tv_usec - starttime->tv_usec);
     return usec;
 }
 
@@ -418,20 +468,19 @@ int RS485read(comm_settings *comm_settings_t, int id, char *package)
 
     ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
 
-    while((n_bytes < 4) && ( timevaldiff(&start, &now) < 4000)) {
+    while((n_bytes < 4) && ( timevaldiff(&start, &now) < READ_TIMEOUT)) {
         gettimeofday(&now, NULL);
         ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
     }
 
-    if (!read(comm_settings_t->file_handle, data_in, 4)) {
+    if (!read(comm_settings_t->file_handle, data_in, 4)) 
         return -1;
-    }
+    
 
     // Control ID
-    if ((id != 0) && (data_in[2] != id)) {
-        return -1;
-    }
-
+    if ((id != 0) && (data_in[2] != id))
+        return -2;
+    
 
     package_size = data_in[3];
 
@@ -440,21 +489,20 @@ int RS485read(comm_settings *comm_settings_t, int id, char *package)
 
     ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
 
-    while((n_bytes < package_size) && ( timevaldiff(&start, &now) < 4000)) {
+    while((n_bytes < package_size) && ( timevaldiff(&start, &now) < READ_TIMEOUT)) {
         gettimeofday(&now, NULL);
         ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
     }
 
-    if (!read(comm_settings_t->file_handle, data_in, package_size)) {
-        return -1;
-    }
-
+    if (!read(comm_settings_t->file_handle, data_in, package_size)) 
+        return -3;
+    
 #endif
 
     // Control checksum
-    if (checksum ( (char *) data_in, package_size - 1) != (char) data_in[package_size - 1]) {
-        return -1;
-    }
+    if (checksum ( (char *) data_in, package_size - 1) != (char) data_in[package_size - 1]) 
+       return -1;
+    
 
 #ifdef VERBOSE
     printf("Received package size: %d \n", package_size);
@@ -543,8 +591,8 @@ int RS485ListDevices(comm_settings *comm_settings_t, char list_of_ids[255])
         }
 
         if(aux_int) {
-            list_of_ids[h] = package_in[2];
-            h++;
+         list_of_ids[h] = package_in[2];
+         h++;
         }
 
 #else
@@ -704,6 +752,83 @@ void commActivate(comm_settings *comm_settings_t, int id, char activate) {
     data_out[4] = CMD_ACTIVATE;                     // command
     data_out[5] = activate ? 3 : 0;
     data_out[6] = checksum(data_out + 4, 2);        // checksum
+
+#if (defined(_WIN32) || defined(_WIN64))
+    WriteFile(comm_settings_t->file_handle, data_out, 7, &package_size_out, NULL);
+#else
+    ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
+    if(n_bytes)
+        read(comm_settings_t->file_handle, package_in, n_bytes);
+
+    write(comm_settings_t->file_handle, data_out, 7);
+#endif
+
+}
+
+
+//==============================================================================
+//                                                               commSetBaudRate
+//==============================================================================
+// This function set baudrate of communication
+//==============================================================================
+
+
+void commSetBaudRate(comm_settings *comm_settings_t, int id, short int baudrate) {
+
+    char data_out[BUFFER_SIZE];             // output data buffer
+
+#if (defined(_WIN32) || defined(_WIN64))
+    DWORD package_size_out;             // for serial port access
+#else
+    int n_bytes;
+    char package_in[BUFFER_SIZE];
+#endif
+
+    data_out[0] = ':';
+    data_out[1] = ':';
+    data_out[2] = (unsigned char) id;
+    data_out[3] = 3;
+    data_out[4] = CMD_SET_BAUDRATE;                         // command
+    data_out[5] = (baudrate == BAUD_RATE_T_2000000) ? 3 : 13; // Set Prescaler
+    data_out[6] = checksum(data_out + 4, 2);                // checksum
+
+#if (defined(_WIN32) || defined(_WIN64))
+    WriteFile(comm_settings_t->file_handle, data_out, 7, &package_size_out, NULL);
+#else
+    ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
+    if(n_bytes)
+        read(comm_settings_t->file_handle, package_in, n_bytes);
+
+    write(comm_settings_t->file_handle, data_out, 7);
+#endif
+
+}
+
+//==============================================================================
+//                                                               commSetWatchDog
+//==============================================================================
+// This function set watchdog timer period.
+//==============================================================================
+
+
+void commSetWatchDog(comm_settings *comm_settings_t, int id, short int wdt) {
+
+    char data_out[BUFFER_SIZE];             // output data buffer
+
+#if (defined(_WIN32) || defined(_WIN64))
+    DWORD package_size_out;             // for serial port access
+#else
+    int n_bytes;
+    char package_in[BUFFER_SIZE];
+#endif
+
+    data_out[0] = ':';
+    data_out[1] = ':';
+    data_out[2] = (unsigned char) id;
+    data_out[3] = 3;
+    data_out[4] = CMD_SET_WATCHDOG;                         // command
+    data_out[5] = (wdt / 2);                                // Set WDT Timer period
+    data_out[6] = checksum(data_out + 4, 2);                // checksum
 
 #if (defined(_WIN32) || defined(_WIN64))
     WriteFile(comm_settings_t->file_handle, data_out, 7, &package_size_out, NULL);
@@ -969,98 +1094,6 @@ int commGetMeasurements(comm_settings *comm_settings_t, int id, short int measur
 }
 
 //==============================================================================
-//                                                               commGetCounters
-//==============================================================================
-// This function gets counters values from the QB Move.
-//==============================================================================
-
-int commGetCounters(comm_settings *comm_settings_t, int id, short unsigned int counters[]) {
-
-    char data_out[BUFFER_SIZE];         // output data buffer
-    char package_in[BUFFER_SIZE];       // output data buffer
-    int package_in_size;
-
-#if (defined(_WIN32) || defined(_WIN64))
-    DWORD package_size_out;             // for serial port access
-#else
-    int n_bytes;
-#endif
-
-//=================================================     preparing packet to send
-
-    data_out[0] = ':';
-    data_out[1] = ':';
-    data_out[2] = (unsigned char) id;
-    data_out[3] = 2;
-    data_out[4] = CMD_GET_COUNTERS;             // command
-    data_out[5] = CMD_GET_COUNTERS;             // checksum
-
-#if (defined(_WIN32) || defined(_WIN64))
-    WriteFile(comm_settings_t->file_handle, data_out, 6, &package_size_out, NULL);
-#else
-    ioctl(comm_settings_t->file_handle, FIONREAD, &n_bytes);
-    if(n_bytes)
-        read(comm_settings_t->file_handle, package_in, n_bytes);
-
-    write(comm_settings_t->file_handle, data_out, 6);
-#endif
-
-    package_in_size = RS485read(comm_settings_t, id, package_in);
-    if (package_in_size == -1) {
-        return -1;
-        printf("culo\n");
-    }
-//==============================================================     get packet
-
-    ((char *) &counters[0])[0] = package_in[2];
-    ((char *) &counters[0])[1] = package_in[1];
-    ((char *) &counters[1])[0] = package_in[4];
-    ((char *) &counters[1])[1] = package_in[3];
-    ((char *) &counters[2])[0] = package_in[6];
-    ((char *) &counters[2])[1] = package_in[5];
-    ((char *) &counters[3])[0] = package_in[8];
-    ((char *) &counters[3])[1] = package_in[7];
-
-    ((char *) &counters[4])[0] = package_in[10];
-    ((char *) &counters[4])[1] = package_in[9];
-    ((char *) &counters[5])[0] = package_in[12];
-    ((char *) &counters[5])[1] = package_in[11];
-    ((char *) &counters[6])[0] = package_in[14];
-    ((char *) &counters[6])[1] = package_in[13];
-    ((char *) &counters[7])[0] = package_in[16];
-    ((char *) &counters[7])[1] = package_in[15];
-
-    ((char *) &counters[8])[0] = package_in[18];
-    ((char *) &counters[8])[1] = package_in[17];
-    ((char *) &counters[9])[0] = package_in[20];
-    ((char *) &counters[9])[1] = package_in[19];
-    ((char *) &counters[10])[0] = package_in[22];
-    ((char *) &counters[10])[1] = package_in[21];
-    ((char *) &counters[11])[0] = package_in[24];
-    ((char *) &counters[11])[1] = package_in[23];
-
-    ((char *) &counters[12])[0] = package_in[26];
-    ((char *) &counters[12])[1] = package_in[25];
-    ((char *) &counters[13])[0] = package_in[28];
-    ((char *) &counters[13])[1] = package_in[27];
-    ((char *) &counters[14])[0] = package_in[30];
-    ((char *) &counters[14])[1] = package_in[29];
-    ((char *) &counters[15])[0] = package_in[32];
-    ((char *) &counters[15])[1] = package_in[31];
-
-    ((char *) &counters[16])[0] = package_in[34];
-    ((char *) &counters[16])[1] = package_in[33];
-    ((char *) &counters[17])[0] = package_in[36];
-    ((char *) &counters[17])[1] = package_in[35];
-    ((char *) &counters[18])[0] = package_in[38];
-    ((char *) &counters[18])[1] = package_in[37];
-    ((char *) &counters[19])[0] = package_in[40];
-    ((char *) &counters[19])[1] = package_in[39];
-
-    return 0;
-}
-
-//==============================================================================
 //                                                          commGetCurrents
 //==============================================================================
 // This function gets currents from the QB Move.
@@ -1116,7 +1149,7 @@ int commGetCurrents(comm_settings *comm_settings_t, int id, short int currents[2
 //==============================================================================
 //                                                          commGetEmg
 //==============================================================================
-// This function gets Emg signals from the Soft Hand
+// This function gets currents from the QB Move.
 //==============================================================================
 
 int commGetEmg(comm_settings *comm_settings_t, int id, short int emg[2]) {
@@ -1321,7 +1354,7 @@ int commGetInfo(comm_settings *comm_settings_t, int id, short int info_type, cha
     data_out[0] = ':';
     data_out[1] = ':';
     data_out[2] = (unsigned char) id;
-    data_out[3] = 4;
+    data_out[3] = 5;
     data_out[4] = CMD_GET_INFO;                        // command
     data_out[5] = ((unsigned char *) &info_type)[1];   // parameter type
     data_out[6] = ((unsigned char *) &info_type)[0];   // parameter type
@@ -1350,8 +1383,10 @@ int commGetInfo(comm_settings *comm_settings_t, int id, short int info_type, cha
 
     while(1) {
         usleep(50000);
+
         if(ioctl(comm_settings_t->file_handle, FIONREAD, &bytes) < 0)
             break;
+
         if(bytes == 0)
             break;
 
@@ -1421,7 +1456,7 @@ int commBootloader(comm_settings *comm_settings_t, int id) {
 //==============================================================================
 //                                                                 commCalibrate
 //==============================================================================
-//  This function starts the calibration of the stiffness
+//  This function starts the caliobration of the stiffness
 //==============================================================================
 
 
@@ -1584,8 +1619,8 @@ int commSetParam(  comm_settings *comm_settings_t,
             break;
 
         case PARAM_POS_LIMIT:
-            value       = (int *) values;
-            value_size  = 4;
+            value       = (short int *) values;
+            value_size  = 2;
             break;
 
         case PARAM_MAX_STEP_POS:
@@ -1613,6 +1648,7 @@ int commSetParam(  comm_settings *comm_settings_t,
             value_size  = 2;
             break;
 
+
         case PARAM_EMG_MAX_VALUE:
             value       = (int32_t *) values;
             value_size  = 4;
@@ -1631,21 +1667,6 @@ int commSetParam(  comm_settings *comm_settings_t,
         case PARAM_MOT_HANDLE_RATIO:
             value       = (int8_t *) values;
             value_size  = 1;
-            break;
-
-        case PARAM_MOTOR_SUPPLY:
-            value       = (uint8_t *) values;
-            value_size  = 1;
-            break;
-
-        case PARAM_DEFLECTION_CONTROL:
-            value       = (uint8_t *) values;
-            value_size  = 1;
-            break;
-
-        case PARAM_CURRENT_LOOKUP:
-            value      = (float *) values;
-            value_size = 4;
             break;
 
         default:
@@ -1798,18 +1819,6 @@ int commGetParam(comm_settings *comm_settings_t,
             value_size = 1;
             break;
 
-        case PARAM_MOTOR_SUPPLY:
-            value_size = 1;
-            break;
-
-        case PARAM_DEFLECTION_CONTROL:
-            value_size = 1;
-            break; 
-
-        case PARAM_CURRENT_LOOKUP:
-            value_size = 4;
-            break;
-            
         default:
             break;
     }

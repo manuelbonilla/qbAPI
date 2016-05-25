@@ -28,7 +28,7 @@
  *  \brief      Definitions for QB Move commands, parameters and packages.
  *
  *  \details
- *  This file is included in the qbMove firmware, in its libraries and
+ *  This file is included in the QB Move firmware, in its libraries and
  *  applications. It contains all definitions that are necessary for the
  *  contruction of communication packages.
  *
@@ -41,14 +41,14 @@
 #define COM_COMMANDS_DEFINITIONS_H_INCLUDED
 
 #define NUM_OF_SENSORS 3
-#define API_VERSION "v5.5.0"
+#define API_VERSION "v5.2.1"
 
 //==============================================================================
 //                                                                      COMMANDS
 //==============================================================================
 
 
-/** \name qbMove Commands
+/** \name QB Move Commands
  * \{
 **/
 
@@ -67,15 +67,15 @@ enum qbmove_command
     CMD_RESTORE_PARAMS          = 5,    ///< Restore default factory parameters
     CMD_GET_INFO                = 6,    ///< Asks for a string of information about
 
-    CMD_SET_VALUE               = 7,    ///< Not used
-    CMD_GET_VALUE               = 8,    ///< Not used
+    CMD_SET_VALUE               = 7,
+    CMD_GET_VALUE               = 8,
 
-    CMD_BOOTLOADER              = 9,    ///< Sets the bootloader modality to update the
-                                        ///  firmware
-    CMD_INIT_MEM                = 10,   ///< Initialize the memory with the defalut values
+    CMD_BOOTLOADER              = 9,
 
-    CMD_CALIBRATE               = 11,   ///< Starts the stiffness calibration of the qbMove
-                                        ///  or the hand closure and opening calibration
+    CMD_INIT_MEM                = 10,
+
+    CMD_CALIBRATE               = 11,
+
 
 //=========================================================     QB Move commands
 
@@ -91,30 +91,22 @@ enum qbmove_command
                                     ///  current measurements
     CMD_GET_CURR_AND_MEAS   = 134,  ///< Command for asking device's
                                     ///  measurements and currents
-    CMD_SET_POS_STIFF       = 135,  ///< Command for setting stiffness and position
-                                    ///  of the qbMove's shaft
-    CMD_GET_EMG             = 136,  ///< Command for getting the emg sensors measurements
+    CMD_SET_POS_STIFF       = 135,
+
+    CMD_GET_EMG             = 136,
 
     CMD_GET_VELOCITIES      = 137,  ///< Command for asking device's
                                     ///  current velocity of motors and pulley
-    CMD_GET_COUNTERS        = 138,  ///< Command for asking device's counters
-                                    ///  (mostly used for debugging sent commands)
-    CMD_GET_ACCEL           = 139,  ///< Command for asking device's
-                                    ///  acceleretion measurements
-    CMD_GET_CURR_DIFF       = 140,  ///< Command for asking device's 
-                                    ///  current difference between a measured
-                                    ///  one and an estimated one (Only for SoftHand)
-    CMD_SET_CURR_DIFF       = 141,  ///< Command used to set current difference modality
-                                    ///  (Only for Cuff device)
-    CMD_SET_CUFF_INPUTS     = 142   ///< Command used to set Cuff device inputs 
-                                    ///  (Only for Cuff device)
+    CMD_SET_WATCHDOG        = 138,
+    CMD_SET_BAUDRATE        = 139   ///< Command for setting baud rate 
+                                    ///  of communication
 };
 
 /** \} */
 //==============================================================================
 //                                                                    PARAMETERS
 //==============================================================================
-/** \name qbMove Parameters */
+/** \name QB Move Parameters */
 /** \{ */
 
 enum qbmove_parameter
@@ -134,28 +126,29 @@ enum qbmove_parameter
                                         ///  measurements
     PARAM_POS_LIMIT_FLAG         = 7,   ///< Enable/disable position limiting
     PARAM_POS_LIMIT              = 8,   ///< Position limit values
-                                        ///  [ int32     | int32     | int32     | int32     ]
-                                        ///  [ INF_LIM_1 | SUP_LIM_1 | INF_LIM_2 | SUP_LIM_2 ]
+                                        ///  | int32     | int32     | int32     | int32     |
+                                        ///  | INF_LIM_1 | SUP_LIM_1 | INF_LIM_2 | SUP_LIM_2 |
 
-    PARAM_MAX_STEP_POS           = 9,   ///< Used to slow down movements for positive values
-    PARAM_MAX_STEP_NEG           = 10,  ///< Used to slow down movements for negative values
+    PARAM_MAX_STEP_POS           = 9,
+    PARAM_MAX_STEP_NEG           = 10,
     PARAM_POS_RESOLUTION         = 11,  ///< Angle resolution for inputs and
                                         ///  measurements. Used during
                                         ///  communication.
     PARAM_CURRENT_LIMIT          = 12,  ///< Limit for absorbed current
+
+
     PARAM_EMG_CALIB_FLAG         = 13,  ///< Enable calibration on startup
     PARAM_EMG_THRESHOLD          = 14,  ///< Minimum value to have effect
     PARAM_EMG_MAX_VALUE          = 15,  ///< Maximum value of EMG
     PARAM_EMG_SPEED              = 16,  ///< Closure speed when using EMG
-    PARAM_SC_BAND                = 17,  ///< Short-Circuit band
-    PARAM_PID_CURR_CONTROL       = 18,  ///< PID current control
-    PARAM_DOUBLE_ENC_ON_OFF      = 19,  ///< Double Encoder Y/N
-    PARAM_MOT_HANDLE_RATIO       = 20,  ///< Multiplier between handle and motor
-    PARAM_MOTOR_SUPPLY           = 21,  ///< Motor supply voltage of the hand
-    PARAM_DEFLECTION_CONTROL     = 22,  ///< Activation of deflection control (qbMove only)
-    PARAM_CURRENT_LOOKUP         = 23   ///< Table of values used to calculate 
-                                        ///  an estimated current of the SoftHand
 
+    PARAM_SC_BAND                = 17,  ///< Short-Circuit band
+
+    PARAM_PID_CURR_CONTROL       = 18,  ///< PID current control
+
+    PARAM_DOUBLE_ENC_ON_OFF      = 19,  ///< Double Encoder Y/N
+
+    PARAM_MOT_HANDLE_RATIO       = 20   ///< Multiplier between handle and motor
 };
 
 
@@ -199,15 +192,8 @@ enum qbmove_control_mode
 {
     CONTROL_ANGLE           = 0,        ///< Classic position control
     CONTROL_PWM             = 1,        ///< Direct PWM value
-    CONTROL_CURRENT         = 2,        ///< Current control
-    CURR_AND_POS_CONTROL    = 3         ///< Current and position control (beta)
-};
-
-//============================================================     supply types
-
-enum motor_supply_tipe {
-    MAXON_24V               = 0,
-    MAXON_12V               = 1
+    CONTROL_CURRENT         = 2,        ///< Current control (beta)
+    CURR_AND_POS_CONTROL    = 3         ///< Current control (beta)
 };
 
 //====================================================     acknowledgment values
